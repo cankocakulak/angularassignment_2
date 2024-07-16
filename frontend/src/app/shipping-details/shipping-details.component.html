@@ -1,0 +1,6 @@
+<div *ngIf="shipping">
+    <p>Carrier: {{ shipping.carrier }}</p>
+    <p>Address: {{ shipping.address.address_line1 }}, {{ shipping.address.city_locality }}, {{ shipping.address.state_province }}</p>
+    <p>Cost: {{ shipping.cost | currency }}</p>
+  </div>
+  

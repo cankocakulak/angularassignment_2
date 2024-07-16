@@ -1,0 +1,10 @@
+<h2>Order</h2>
+<div>Order Details: <app-order-details [orderItems]="orderSummary?.order"></app-order-details> </div>
+-----------------------------
+<div>Order Details Total: {{ orderTotalAmount | currency }}</div>
+-----------------------------
+<div>Shipping: <app-shipping-details [shipping]="orderSummary?.shipping"></app-shipping-details></div>
+-----------------------------
+<div><app-tax-details [tax]="orderSummary?.tax"></app-tax-details></div>
+-----------------------------
+<div *ngIf="orderSummary">Order Total: {{ orderTotal | currency }}</div>
