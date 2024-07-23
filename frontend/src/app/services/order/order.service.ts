@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, retryWhen, delay, concatMap } from 'rxjs/operators';
 import { OrderItem } from '../../models/order.model';
@@ -14,7 +14,8 @@ export class OrderService {
   constructor(private http: HttpClient) { }
 
   getOrder(): Observable<{ order: OrderItem[] }> {
-    return this.http.get<{ order: OrderItem[] }>(this.apiUrl).pipe(
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${environment.apiKey}`);
+    return this.http.get<{ order: OrderItem[] }>(this.apiUrl, { headers }).pipe(
       retryWhen(errors =>
         errors.pipe(
           concatMap((e, i) => i < 5 ? of(e).pipe(delay(1000)) : throwError(e))

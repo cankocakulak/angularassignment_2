@@ -4,7 +4,9 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000'  // Add the base API URL here
+  apiUrl: 'http://localhost:3000',  // Add the base API URL here
+  apiKey: '5cf091a8-63c0-478a-9f21-efb57469cf80' // Replace with the actual UUID you generated
+
 };
 
 
