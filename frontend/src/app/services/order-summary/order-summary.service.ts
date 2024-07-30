@@ -16,6 +16,7 @@ export class OrderSummaryService {
     private taxService: TaxService
   ) {}
 
+  // RxJS approach
   getSummary(): Observable<OrderSummary> {
     return forkJoin({
       order: this.orderService.getOrder(),
@@ -53,5 +54,42 @@ export class OrderSummaryService {
         } as OrderSummary);
       })
     );
+  }
+
+  // Promise approach
+  async getSummaryPromise(): Promise<OrderSummary> {
+    try {
+      const orderResponse = await this.retryPromise(() => this.orderService.getOrderPromise(), 5, 1000);
+      const taxResponse = await this.retryPromise(() => this.taxService.getTaxPromise(), 5, 1000);
+      const totalWeight = orderResponse.order.reduce((sum, item) => sum + item.weight * item.qty, 0);
+      const shippingResponse = await this.retryPromise(() => this.shippingService.getShippingPromise(totalWeight), 5, 1000);
+
+      return {
+        order: orderResponse.order,
+        shipping: shippingResponse.shipping,
+        tax: taxResponse.tax
+      };
+    } catch (error) {
+      console.error('Error fetching order, tax, or shipping data', error);
+      return {
+        order: [] as OrderItem[],
+        shipping: {} as Shipping,
+        tax: {} as Tax
+      };
+    }
+  }
+
+  private async retryPromise<T>(fn: () => Promise<T>, retries: number, delayMs: number): Promise<T> {
+    let attempt = 0;
+    while (attempt < retries) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (attempt === retries - 1) throw error;
+        attempt++;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    throw new Error('Max retries reached');
   }
 }

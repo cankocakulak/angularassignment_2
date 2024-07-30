@@ -27,5 +27,36 @@ export class OrderService {
       })
     );
   }
-}
 
+  getOrderPromise(): Promise<{ order: OrderItem[] }> {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${environment.apiKey}`);
+    return new Promise((resolve, reject) => {
+      this.retryPromise(() => this.http.get<{ order: OrderItem[] }>(this.apiUrl, { headers }).toPromise(), 5, 1000)
+        .then(data => {
+          if (data) {
+            resolve(data);
+          } else {
+            resolve({ order: [] as OrderItem[] }); // Resolve with empty order if data is undefined
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching order data', error);
+          resolve({ order: [] as OrderItem[] }); // Resolve with empty order on error
+        });
+    });
+  }
+
+  private async retryPromise<T>(fn: () => Promise<T>, retries: number, delayMs: number): Promise<T> {
+    let attempt = 0;
+    while (attempt < retries) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (attempt === retries - 1) throw error;
+        attempt++;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    throw new Error('Max retries reached');
+  }
+}

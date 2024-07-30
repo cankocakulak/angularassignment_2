@@ -27,4 +27,36 @@ export class ShippingService {
       })
     );
   }
+
+  getShippingPromise(totalWeight: number): Promise<{ shipping: Shipping }> {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${environment.apiKey}`);
+    return new Promise((resolve, reject) => {
+      this.retryPromise(() => this.http.get<{ shipping: Shipping }>(`${this.apiUrl}?weight=${totalWeight}`, { headers }).toPromise(), 5, 1000)
+        .then(data => {
+          if (data) {
+            resolve(data);
+          } else {
+            resolve({ shipping: {} as Shipping }); // Resolve with empty shipping if data is undefined
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching shipping data', error);
+          resolve({ shipping: {} as Shipping }); // Resolve with empty shipping on error
+        });
+    });
+  }
+
+  private async retryPromise<T>(fn: () => Promise<T>, retries: number, delayMs: number): Promise<T> {
+    let attempt = 0;
+    while (attempt < retries) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (attempt === retries - 1) throw error;
+        attempt++;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    throw new Error('Max retries reached');
+  }
 }

@@ -9,7 +9,7 @@ import { OrderSummary } from '../models/order.model';
   templateUrl: './order-summary.component.html',
   styleUrls: ['./order-summary.component.scss']
 })
-export class OrderSummaryComponent implements OnInit, OnDestroy {
+export class OrderSummaryComponent  implements OnInit, OnDestroy {
   orderSummary: OrderSummary | null = null;
   orderTotalAmount: number = 0;
   orderTotal: number = 0;
@@ -18,12 +18,35 @@ export class OrderSummaryComponent implements OnInit, OnDestroy {
   constructor(private orderSummaryService: OrderSummaryService) {}
 
   ngOnInit(): void {
+    // Uncomment the method you want to use
+     this.loadOrderSummaryRxJS();
+    // this.loadOrderSummaryPromise();
+  }
+
+  // RxJS approach
+  loadOrderSummaryRxJS(): void {
     this.orderSummaryService.getSummary().pipe(
       takeUntil(this.destroy$)
-    ).subscribe(summary => {
+    ).subscribe(
+      summary => {
+        this.orderSummary = summary;
+        this.calculateOrderTotal();
+      },
+      error => {
+        console.error('Error loading order summary', error);
+      }
+    );
+  }
+
+  // Promise approach
+  async loadOrderSummaryPromise(): Promise<void> {
+    try {
+      const summary = await this.orderSummaryService.getSummaryPromise();
       this.orderSummary = summary;
       this.calculateOrderTotal();
-    });
+    } catch (error) {
+      console.error('Error loading order summary', error);
+    }
   }
 
   calculateOrderTotal(): void {

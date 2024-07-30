@@ -27,4 +27,36 @@ export class TaxService {
       })
     );
   }
+
+  getTaxPromise(): Promise<{ tax: Tax }> {
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${environment.apiKey}`);
+    return new Promise((resolve, reject) => {
+      this.retryPromise(() => this.http.get<{ tax: Tax }>(this.apiUrl, { headers }).toPromise(), 5, 1000)
+        .then(data => {
+          if (data) {
+            resolve(data);
+          } else {
+            resolve({ tax: {} as Tax }); // Resolve with empty tax if data is undefined
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching tax data', error);
+          resolve({ tax: {} as Tax }); // Resolve with empty tax on error
+        });
+    });
+  }
+
+  private async retryPromise<T>(fn: () => Promise<T>, retries: number, delayMs: number): Promise<T> {
+    let attempt = 0;
+    while (attempt < retries) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (attempt === retries - 1) throw error;
+        attempt++;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    throw new Error('Max retries reached');
+  }
 }
