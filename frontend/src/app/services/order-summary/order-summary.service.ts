@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, forkJoin, of, throwError } from 'rxjs';
-import { catchError, map, switchMap, retryWhen, delay, concatMap } from 'rxjs/operators';
+import { catchError, map, switchMap, retry, delay, concatMap } from 'rxjs/operators';
 import { OrderItem, Shipping, Tax, OrderSummary } from '../../models/order.model';
 import { OrderService } from '../order/order.service';
 import { ShippingService } from '../shipping/shipping.service';
@@ -40,11 +40,7 @@ export class OrderSummaryService {
           })
         );
       }),
-      retryWhen(errors =>
-        errors.pipe(
-          concatMap((e, i) => i < 5 ? of(e).pipe(delay(1000)) : throwError(e))
-        )
-      ),
+      retry({ count: 5, delay: 1000 }), // Retry up to 5 times with a 1000ms delay between each attempt
       catchError(error => {
         console.error('Error fetching order or tax data', error);
         return of({
