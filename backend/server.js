@@ -6,7 +6,7 @@ const port = 3000;
 app.use(cors());  // Use cors
 
 //express required
-
+// Give another http status(429) every three time randomly
 app.get('/order', (req, res) => {
     const order = [
         { id: 1, name: 'Cool Shirt', price: 25.0, qty: 3, weight: 0.5 },

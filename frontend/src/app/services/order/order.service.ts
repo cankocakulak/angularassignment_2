@@ -13,10 +13,15 @@ export class OrderService {
 
   constructor(private http: HttpClient) { }
 
+  //retry parts  can be implemented in an interceptor
+  // cath errors can also be in an interceptor (Angular inceptor)
+  // SOLID principles
+  // getsummary retry e
   getOrder(): Observable<{ order: OrderItem[] }> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${environment.apiKey}`);
     return this.http.get<{ order: OrderItem[] }>(this.apiUrl, { headers }).pipe(
       retry({ count: 5, delay: 1000 }),
+      // give the errored step to the console
       catchError(error => {
         console.error('Error fetching order data', error);
         return of({ order: [] as OrderItem[] });
