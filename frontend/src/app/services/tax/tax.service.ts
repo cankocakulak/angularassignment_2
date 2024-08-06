@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError, retry, delay, concatMap } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { Tax } from '../../models/order.model';
 import { environment } from '../../../environments/environment';
+import { lastValueFrom } from 'rxjs';
+
 
 @Injectable({
   providedIn: 'root'
@@ -13,46 +14,15 @@ export class TaxService {
 
   constructor(private http: HttpClient) { }
 
+  // RxJS-based method without retry and error handling
   getTax(): Observable<{ tax: Tax }> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${environment.apiKey}`);
-    return this.http.get<{ tax: Tax }>(this.apiUrl, { headers }).pipe(
-      retry({ count: 5, delay: 1000 }),
-      catchError(error => {
-        console.error('Error fetching tax data', error);
-        return of({ tax: {} as Tax });
-      })
-    );
+    return this.http.get<{ tax: Tax }>(this.apiUrl, { headers });
   }
 
+  // Promise-based method with retry logic
   getTaxPromise(): Promise<{ tax: Tax }> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${environment.apiKey}`);
-    return new Promise((resolve, reject) => {
-      this.retryPromise(() => this.http.get<{ tax: Tax }>(this.apiUrl, { headers }).toPromise(), 5, 1000)
-        .then(data => {
-          if (data) {
-            resolve(data);
-          } else {
-            resolve({ tax: {} as Tax }); // Resolve with empty tax if data is undefined
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching tax data', error);
-          resolve({ tax: {} as Tax }); // Resolve with empty tax on error
-        });
-    });
-  }
-
-  private async retryPromise<T>(fn: () => Promise<T>, retries: number, delayMs: number): Promise<T> {
-    let attempt = 0;
-    while (attempt < retries) {
-      try {
-        return await fn();
-      } catch (error) {
-        if (attempt === retries - 1) throw error;
-        attempt++;
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-    }
-    throw new Error('Max retries reached');
+    return lastValueFrom(this.http.get<{ tax: Tax }>(this.apiUrl, { headers }));
   }
 }

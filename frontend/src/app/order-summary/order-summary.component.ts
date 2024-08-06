@@ -19,8 +19,8 @@ export class OrderSummaryComponent  implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Uncomment the method you want to use
-     this.loadOrderSummaryRxJS();
-    // this.loadOrderSummaryPromise();
+   //  this.loadOrderSummaryRxJS();
+     this.loadOrderSummaryPromise();
   }
 
   // RxJS approach

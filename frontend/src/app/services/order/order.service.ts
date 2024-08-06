@@ -1,9 +1,12 @@
+// src/app/services/order/order.service.ts
+
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError, retry, delay, concatMap } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { OrderItem } from '../../models/order.model';
 import { environment } from '../../../environments/environment';
+import { lastValueFrom } from 'rxjs';
+
 
 @Injectable({
   providedIn: 'root'
@@ -13,51 +16,15 @@ export class OrderService {
 
   constructor(private http: HttpClient) { }
 
-  //retry parts  can be implemented in an interceptor
-  // cath errors can also be in an interceptor (Angular inceptor)
-  // SOLID principles
-  // getsummary retry e
+  // RxJS-based method without retry and error handling
   getOrder(): Observable<{ order: OrderItem[] }> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${environment.apiKey}`);
-    return this.http.get<{ order: OrderItem[] }>(this.apiUrl, { headers }).pipe(
-      retry({ count: 5, delay: 1000 }),
-      // give the errored step to the console
-      catchError(error => {
-        console.error('Error fetching order data', error);
-        return of({ order: [] as OrderItem[] });
-      })
-    );
+    return this.http.get<{ order: OrderItem[] }>(this.apiUrl, { headers });
   }
 
+  // Promise-based method with retry logic
   getOrderPromise(): Promise<{ order: OrderItem[] }> {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${environment.apiKey}`);
-    return new Promise((resolve, reject) => {
-      this.retryPromise(() => this.http.get<{ order: OrderItem[] }>(this.apiUrl, { headers }).toPromise(), 5, 1000)
-        .then(data => {
-          if (data) {
-            resolve(data);
-          } else {
-            resolve({ order: [] as OrderItem[] }); // Resolve with empty order if data is undefined
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching order data', error);
-          resolve({ order: [] as OrderItem[] }); // Resolve with empty order on error
-        });
-    });
-  }
-
-  private async retryPromise<T>(fn: () => Promise<T>, retries: number, delayMs: number): Promise<T> {
-    let attempt = 0;
-    while (attempt < retries) {
-      try {
-        return await fn();
-      } catch (error) {
-        if (attempt === retries - 1) throw error;
-        attempt++;
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
-    }
-    throw new Error('Max retries reached');
+    return lastValueFrom(this.http.get<{ order: OrderItem[] }>(this.apiUrl, { headers }));
   }
 }
