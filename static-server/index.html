@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Summary</title>
+  <style>
+    #order-summary pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .line-break {
+      border-top: 1px solid #000;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Order Summary</h1>
+  <div id="order-summary">
+    <pre id="order-details"></pre>
+    <pre id="shipping-details"></pre>
+    <pre id="tax-details"></pre>
+    <pre id="total-details"></pre>
+  </div>
+
+  <script>
+    const API_BASE_URL = 'http://localhost:3000';
+    const API_KEY = 'your-api-key';
+
+    async function retryFetch(fn, retries, delayMs) {
+      let attempt = 0;
+      while (attempt < retries) {
+        try {
+          return await fn();
+        } catch (error) {
+          if (attempt === retries - 1) throw error;
+          attempt++;
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
+      throw new Error('Max retries reached');
+    }
+
+    async function fetchOrder() {
+      const url = `${API_BASE_URL}/order`;
+      const headers = new Headers();
+      headers.append('Authorization', `Bearer ${API_KEY}`);
+
+      return retryFetch(() => fetch(url, { headers })
+        .then(response => response.ok ? response.json() : Promise.reject(response.statusText)), 5, 1000);
+    }
+
+    async function fetchTax() {
+      const url = `${API_BASE_URL}/tax`;
+      const headers = new Headers();
+      headers.append('Authorization', `Bearer ${API_KEY}`);
+
+      return retryFetch(() => fetch(url, { headers })
+        .then(response => response.ok ? response.json() : Promise.reject(response.statusText)), 5, 1000);
+    }
+
+    async function fetchShipping(totalWeight) {
+      const url = `${API_BASE_URL}/shipping?weight=${totalWeight}`;
+      const headers = new Headers();
+      headers.append('Authorization', `Bearer ${API_KEY}`);
+
+      return retryFetch(() => fetch(url, { headers })
+        .then(response => response.ok ? response.json() : Promise.reject(response.statusText)), 5, 1000);
+    }
+
+    function displayOrderSummary(orderSummary) {
+      const orderDetailsElement = document.getElementById('order-details');
+      const shippingDetailsElement = document.getElementById('shipping-details');
+      const taxDetailsElement = document.getElementById('tax-details');
+      const totalDetailsElement = document.getElementById('total-details');
+
+      // Format Order Details
+      let orderDetailsText = 'Order Details:\n';
+      orderSummary.order.forEach(item => {
+        orderDetailsText += `${item.name} - $${item.price.toFixed(2)} x ${item.qty}\n`;
+      });
+
+      const orderTotalAmount = orderSummary.order.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+      orderDetailsText += '\n-----------------------------\n';
+      orderDetailsText += `Order Details Total: $${orderTotalAmount.toFixed(2)}\n`;
+      orderDetailsText += '-----------------------------\n';
+
+      // Format Shipping Details
+      let shippingDetailsText = `Shipping:\nCarrier: ${orderSummary.shipping.carrier}\n\nAddress: ${orderSummary.shipping.address.address_line1}, ${orderSummary.shipping.address.city_locality}, ${orderSummary.shipping.address.state_province}\n\nCost: $${orderSummary.shipping.cost.toFixed(2)}\n`;
+      shippingDetailsText += '-----------------------------\n';
+
+      // Format Tax Details
+      let taxDetailsText = `Tax: ${(orderSummary.tax.amount * 100).toFixed(0)}%\n`;
+      taxDetailsText += '-----------------------------\n';
+
+      // Calculate Total
+      const shippingCost = orderSummary.shipping.cost;
+      const taxAmount = orderTotalAmount * orderSummary.tax.amount;
+      const orderTotal = orderTotalAmount + shippingCost + taxAmount;
+
+      let totalDetailsText = `Order Total: $${orderTotal.toFixed(2)}\n`;
+
+      // Display Details
+      orderDetailsElement.innerText = orderDetailsText;
+      shippingDetailsElement.innerText = shippingDetailsText;
+      taxDetailsElement.innerText = taxDetailsText;
+      totalDetailsElement.innerText = totalDetailsText;
+    }
+
+    async function fetchOrderSummary() {
+      try {
+        const orderData = await fetchOrder();
+        const taxData = await fetchTax();
+        const totalWeight = orderData.order.reduce((sum, item) => sum + item.weight * item.qty, 0);
+        const shippingData = await fetchShipping(totalWeight);
+
+        const orderSummary = {
+          order: orderData.order,
+          shipping: shippingData.shipping,
+          tax: taxData.tax
+        };
+
+        displayOrderSummary(orderSummary);
+      } catch (error) {
+        console.error('Error fetching order summary:', error);
+        document.getElementById('order-summary').innerText = 'Error fetching order summary';
+      }
+    }
+
+    fetchOrderSummary();
+  </script>
+</body>
+</html>
