@@ -37,10 +37,15 @@
       let attempt = 0;
       while (attempt < 5) {
         try {
+          // function we would like to retry in case of failure
           return await fn();
         } catch (error) {
           if (attempt === 4) throw error;
           attempt++;
+          //pause the execution of the function until the promise is resolved
+          // create a promise after 1000 ms
+          //A Promise in JavaScript is an object that represents the 
+          //eventual completion (or failure) of an asynchronous operation and its resulting value, resolve or reject
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
@@ -50,9 +55,11 @@
     // Interaction with backend APIs
     async function fetchOrder() {
       const url = `${API_BASE_URL}/order`;
+      //for autharitzation purposes
       const headers = new Headers();
       headers.append('Authorization', `Bearer ${API_KEY}`);
 
+      //response of the promise is taken and if the response is ok then the json is returned, if not, the promise is rejected with the status text
       return retryFetch(() => fetch(url, { headers })
         .then(response => response.ok ? response.json() : Promise.reject(response.statusText)));
     }
@@ -77,6 +84,7 @@
 
     // Rendering function results with 2 decimals
     function renderOrderDetails(order) {
+      //iterate over each element in the order array : converting each item in the order array into an HTML string
       return order.map(item => `
         <div>${item.name} - $${item.price.toFixed(2)} x ${item.qty}</div>
       `).join('');
@@ -95,7 +103,7 @@
       return `
         <div>Shipping:</div>
         <div>Carrier: ${shipping.carrier}</div>
-        <div>Address: ${shipping.address.address_line1}, ${shipping.address.city_locality}, ${shipping.address.state_province}</div>
+        <div>Address: ${shipping.address.address_line1}, ${shipping.address.city_locality}, ${shipping.address.state_province}</div>    
         <div>Cost: $${shipping.cost.toFixed(2)}</div>
       `;
     }
